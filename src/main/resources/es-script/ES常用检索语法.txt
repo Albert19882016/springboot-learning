@@ -1,0 +1,642 @@
+1. match 
+   查询关键词会被分词，分词后的任一此项匹配即可。
+  {
+    "query":{
+        "match":{
+            "author":"大哥"
+        }
+    }
+  }
+
+2. match_phrase
+  短语匹配，把关键字当一个不可分的短语
+  {
+    "query":{
+        "match_phrase":{
+            "title":"Elastic搜索"
+        }
+    }
+  }
+
+3. multi_match
+  多字段匹配，寻找author和title包括关键字的匹配记录
+  {
+    "query":{
+        "multi_match":{
+            "query":"Elastic搜索",
+            "filter": ["author","title"]
+        }
+    }
+  }
+  
+  
+4. query_string 
+  语法查询
+  {
+    "query":{
+        "query_string": {
+            "query":"Elastic搜索 AND 入门"
+			"fields": ["_all", "summary^2"]  //summary字段的权重为2：
+        }
+    }
+  }
+  
+  
+  "query": {
+    "query_string" : {
+       "query": "(saerch~1 algorithm~1) AND (grant ingersoll) OR (tom morton)",
+       "fields": ["_all", "summary^2"]
+    }
+  }
+  
+  
+  {
+    "query":{
+        "query_string": {
+            "query":"(Elastic搜索 AND 入门) OR Python"
+        }
+    }
+  }
+  
+  {
+    "query":{
+        "query_string": {
+            "query":"Elastic OR Python",
+            "fields":["title","author"]
+        }
+    }
+  }
+  
+5. term
+  {
+    "query":{
+        "term":{
+            "word_count":1000
+        }
+    }
+  }  
+
+
+6. bool && filter
+  {
+    "query": {
+        "bool":{
+            "filter":{
+                "term":{
+                    "word_count":1000
+                }
+            }
+        }
+    }
+  }
+  
+7. constant_score
+   不指定分数的话，默认都为 1
+  {
+    "query":{
+        "constant_score":{   //只支持filter，不支持match
+            "filter":{
+                "match":{
+                    "title":"Elastic搜索" 
+                }
+            },
+            "boost":2      //指定分数为2
+        }
+    }
+  }	
+  
+
+8. should
+  {
+    "query":{
+        "should":[
+            {
+                "match":{
+                    "author":"大哥"
+                }
+            },
+            {
+                "match":{
+                    "title":"Elastic搜索"
+                }
+            }
+        ]
+    }
+  }
+
+
+9. must && filter 
+  {
+    "query":{
+        "bool":{
+            "must":[
+                {
+                   "match":{
+                      "author":"大哥"
+                   }
+                },
+                {
+                   "match":{
+                      "title":"Elastic搜索"
+                    }
+                }
+             ],
+             "filter":[
+                "term":{
+                    "word_count":1000
+                }   
+            ]
+        }
+    }
+  }
+
+10. must_not
+  {
+    "query":{
+        "bool":{
+            "must_not":{
+                "term":{
+                    "author":"郑联军"
+                }
+            }
+        }   
+    }
+  }  
+
+
+11. 多值字段排序
+  "sort": {
+    "dates": {
+        "order": "asc",
+        "mode":  "min"
+    }
+  }
+
+
+12. Fuzzy Queries（模糊查询）
+ 　模糊查询可以在Match和 Multi-Match查询中使用以便解决拼写的错误，
+   模糊度是基于Levenshteindistance计算与原单词的距离。使用如下：
+   {
+    "query": {
+        "multi_match" : {
+            "query" : "rock climb",
+            "fields": ["about", "interests"],
+            "fuzziness": "AUTO"
+        }
+    },
+    "_source": ["about", "interests", "first_name"],   
+   }
+   上面我们将fuzziness的值指定为AUTO，其在term的长度大于5的时候相当于指定值为2，
+   然而80%的人拼写错误的编辑距离(edit distance)为1，
+   所有如果你将fuzziness设置为1可能会提高你的搜索性能
+   
+   
+13. Wildcard Query(通配符查询)
+　 通配符查询允许我们指定一个模式来匹配，而不需要指定完整的trem。
+   ?将会匹配如何字符；*将会匹配零个或者多个字符。
+   比如我们想查找所有名字中以J字符开始的记录，我们可以如下使用：
+   {
+    "query": {
+        "wildcard" : {
+            "first_name" : "s*"
+        }
+    },
+    "_source": ["first_name", "last_name"],
+    "highlight": {
+        "fields" : {
+            "first_name" : {}
+        }
+    }
+   } 
+
+14. Regexp Query(正则表达式查询)
+　　ElasticSearch还支持正则表达式查询，此方式提供了比通配符查询更加复杂的模式。
+    比如我们先查找作者名字以J字符开头，中间是若干个a-z之间的字符，并且以字符n结束的记录。
+	可以如下查询：   
+	{
+      "query": {
+        "regexp" : {
+            "first_name" : "J[a-z]*n"
+        }
+      },
+      "_source": ["first_name", "age"],
+      "highlight": {
+        "fields" : {
+            "first_name" : {}
+        }
+      }
+    }
+	
+	
+15. simple_query_string
+  simple_query_string是query_string的另一种版本，其更适合为用户提供一个搜索框中，
+  因为其使用+/|/- 分别替换AND/OR/NOT，如果用输入了错误的查询，
+  其直接忽略这种情况而不是抛出异常。使用如下：	
+    "query": {
+        "simple_query_string" : {
+          "query": "(saerch~1 algorithm~1) + (grant ingersoll) | (tom morton)",
+          "fields": ["_all", "summary^2"]
+        }
+    }
+
+18. range
+  GET website/_search
+  {
+    "query": {
+        "range" : {
+            "postdate" : {
+                "gte" : "2017-01-01",
+                "lte" :  "2017-12-31",
+                "format": "yyyy-MM-dd"
+            }
+        }
+    }
+  }
+  
+  {
+    "query":{
+        "range":{
+            "date":{
+                "gte":"2017-1-1", //后面这个e就是equal
+                "lte":"now"
+            }
+        }
+    }
+  }
+  
+  
+  GET _search
+  {
+    "query": {
+        "range" : {
+            "age" : {
+                "gte" : 10,
+                "lte" : 20,
+                "boost" : 2.0
+            }
+        }
+    }
+  }
+ 
+
+19. 高亮
+  19.1 默认高亮
+  GET website/_search
+  {
+    "query" : {
+        "match": { "title": "yum" }
+    },
+    "highlight" : {
+        "fields" : {
+            "title" : {}
+        }
+    }
+  }
+  19.2 自定义高亮标签
+  GET website/_search
+  {
+    "query" : {
+        "match": { "title": "yum" }
+    },
+    "highlight" : {
+        "fields" : {
+            "title" : {
+              "pre_tags":["<mark>"],
+              "post_tags":["</mark>"]
+            }
+        }
+    }
+  }
+  19.3 多字段高亮
+  我们希望搜索title字段时，除了title字段中匹配关键字高亮，
+  摘要abstract字段对应的关键字也要高亮，这需要对require_field_match属性进行设置。
+  By default, only fields that contains a query match are highlighted. 
+  Set require_field_match to false to highlight all fields. Defaults to true. 
+  默认情况下，只有包含查询匹配的字段才会突出显示。 
+  因为默认require_field_match值为true，可以设置为false以突出显示所有字段。
+  GET website/_search
+  {
+    "query" : {
+        "match": { "title": "yum" }
+    },
+    "highlight" : {
+        "require_field_match":false,
+        "fields" : {
+            "title" : {},
+            "abstract" : {}
+        }
+    }
+  }
+ 
+
+20. 排序 
+GET website/_search
+{
+  "query": {
+    "match_all": {}
+  }, 
+  "sort": [
+    {"salary":{"order":"desc"}},
+    {"age":{"order":"asc"}}
+  ]
+}
+
+
+21. 聚合查询 - max 
+GET my-index/_search
+{
+  "size": 0, 
+  "aggs": {
+    "max_age": {
+      "max": {"field": "age"}
+    }
+  }
+}
+
+
+21. 聚合查询 - min 
+GET my-index/_search
+{
+  "size": 0, 
+  "aggs": {
+    "min_age": {
+      "min": {"field": "age"}
+    }
+  }
+}
+
+
+21. 聚合查询 - avg
+GET my-index/_search
+{
+  "size": 0, 
+  "aggs": {
+    "avg_salary": {
+      "avg": {"field": "salary"}
+    }
+  }
+}
+
+
+21. 聚合查询 - sum
+GET my-index/_search
+{
+  "size": 0, 
+  "aggs": {
+    "sum_salary": {
+      "sum": {"field": "salary"}
+    }
+  }
+}
+
+
+21. 聚合查询 - stats
+GET my-index/_search
+{
+  "size": 0, 
+  "aggs": {
+    "stats_salary": {
+      "stats": {"field": "salary"}
+    }
+  }
+}
+
+
+GET my-index/_search
+{
+  "size": 0, 
+  "aggs": {
+    "stats_salary": {
+      "extended_stats": {"field": "salary"}
+    }
+  }
+}
+
+
+21.8 聚合查询-文档数量统计
+GET my-index/_search
+{
+  "size": 0, 
+  "aggs": {
+    "doc_count": {
+      "value_count": {"field": "salary"}
+    }
+  }
+}
+
+22. buckets 桶聚合
+22.1 Terms Aggregation
+  根据薪资水平进行分组，统计每个薪资水平的人数
+  GET my-index/_search
+  {
+    "size": 0, 
+    "aggs": {
+      "group_count": {
+        "terms": {"field": "salary"}
+      }
+    }
+  }
+  
+  统计上面每个分组的平均年龄
+  GET my-index/_search
+  {
+    "size": 0, 
+    "aggs": {
+      "group_count": {
+        "terms": {"field": "salary"},
+        "aggs":{
+          "avg_age":{
+            "avg":{"field": "age"}
+          }
+        }
+      }
+    }
+  }
+  
+  统计每个部门的人数
+  GET my-index/_search
+  {
+    "size": 0, 
+    "aggs": {
+      "group_count": {
+        "terms": {"field": "dep.keyword"}
+      }
+    }
+  }
+
+
+22.2 Filter Aggregation
+  计算男人的平均年龄 
+  也就是统计gender字段包含关键字“男”的文档的age平均值。
+  GET my-index/_search
+  {
+    "size": 0, 
+    "aggs": {
+      "group_count": {
+        "filter": {
+          "term":{"gender": "男"}
+        },
+        "aggs":{
+          "avg_age":{
+            "avg":{"field": "age"}
+          }
+        }
+      }
+    }
+  }
+  
+
+22.3 Filters Aggregation
+  统计body字段包含”error”和包含”warning”的文档数
+  GET logs/_search
+  {
+    "size": 0,
+    "aggs" : {
+      "messages" : {
+        "filters" : {
+          "filters" : {
+            "errors" :   { "match" : { "body" : "error"   }},
+            "warnings" : { "match" : { "body" : "warning" }}
+          }
+        }
+      }
+    }
+  }
+  
+  
+  分别统计男女员工的平均年龄
+  GET my-index/_search
+  {
+    "size": 0, 
+    "aggs": {
+      "group_count": {
+        "filters":{
+          "filters": [
+            {"match":{"gender": "男"}},
+            {"match":{"gender": "女"}}
+          ]
+        },
+        "aggs":{
+          "avg_age":{
+            "avg":{"field": "age"}
+          }
+        }
+      }
+    }
+  }
+ 
+ 
+22.4 Range Aggregation
+  查询薪资在[0,10000),[10000,20000),[2000,+无穷大)三个范围的员工数
+  GET my-index/_search
+  {
+    "size": 0, 
+    "aggs": {
+      "group_count": {
+        "range": {
+          "field": "salary",
+          "ranges": [
+            {"to": 10000},
+            {"from": 10000,"to":20000},  
+            {"from": 20000}
+          ]
+        }
+      }
+    }
+  }
+  
+  
+  查询发布日期在2016-12-01之前、2016-12-01至2017-01-01、2017-01-01之后三个时间区间的文档数
+  GET website/_search
+  {
+    "size": 0, 
+    "aggs": {
+      "group_count": {
+        "range": {
+          "field": "postdate",
+          "format":"yyyy-MM-dd",
+          "ranges": [
+            {"to": "2016-12-01"},
+            {"from": "2016-12-01","to":"2017-01-01"},  
+            {"from": "2017-01-01"}
+          ]
+        }
+      }
+    }
+  }
+  
+22.5 Date Range聚合
+  计算一年前之前发表的博文数和从一年前以来发表的博文总数
+  GET website/_search
+  {
+    "size": 0, 
+    "aggs": {
+      "group_count": {
+        "range": {
+          "field": "postdate",
+          "format":"yyyy-MM-dd",
+          "ranges": [
+            {"to": "now-12M/M"},
+            {"from": "now-12M/M"}
+          ]
+        }
+      }
+    }
+  }
+  
+
+22.6 Missing聚合
+  salary字段缺少的文档
+  GET my-index/_search
+  {
+    "size": 0, 
+    "aggs": {
+      "noDep_count": {
+        "missing": {"field": "salary"}
+      }
+    }
+  }  
+   
+   
+   
+相关度：
+什么是相关性?编辑
+我们曾经讲过，默认情况下，返回结果是按相关性倒序排列的。但是什么是相关性？相关性如何计算？
+
+每个文档都有相关性评分，用一个正浮点数字段 _score 来表示 。 _score 的评分越高，相关性越高。
+
+查询语句会为每个文档生成一个 _score 字段。
+评分的计算方式取决于查询类型不同的查询语句用于不同的目的： 
+fuzzy 查询会计算与关键词的拼写相似程度，terms 查询会计算找到的内容与关键词组成部分匹配的百分比，
+但是通常我们说的 relevance 是我们用来计算全文本字段的值相对于全文本检索词相似程度的算法。
+
+Elasticsearch 的相似度算法 被定义为检索词频率/反向文档频率， TF/IDF ，包括以下内容：
+
+检索词频率
+  检索词在该字段出现的频率？出现频率越高，相关性也越高。 字段中出现过 5 次要比只出现过 1 次的相关性高。
+反向文档频率
+  每个检索词在索引中出现的频率？频率越高，相关性越低。检索词出现在多数文档中会比出现在少数文档中的权重更低。
+字段长度准则
+  字段的长度是多少？长度越长，相关性越低。 检索词出现在一个短的 title 要比同样的词出现在一个长的 content 字段权重更大。
+  单个查询可以联合使用 TF/IDF 和其他方式，比如短语查询中检索词的距离或模糊查询里的检索词相似度。
+
+相关性并不只是全文本检索的专利。也适用于 yes|no 的子句，匹配的子句越多，相关性评分越高。
+如果多条查询子句被合并为一条复合查询语句 ，比如 bool 查询，则每个查询子句计算得出的评分会被合并到总的相关性评分中。
+GET /_search?explain 
+{
+   "query"   : { "match" : { "tweet" : "honeymoon" }}
+}
+
+然后它提供了权重是如何计算的细节：
+
+检索词频率:
+  检索词 `honeymoon` 在这个文档的 `tweet` 字段中的出现次数。
+反向文档频率:
+  检索词 `honeymoon` 在索引上所有文档的 `tweet` 字段中出现的次数。
+字段长度准则:
+  在这个文档中，`tweet` 字段内容的长度 -- 内容越长，值越小。
+  复杂的查询语句解释也非常复杂，但是包含的内容与上面例子大致相同。 
+  通过这段信息我们可以了解搜索结果是如何产生的。   
+ 
+ 
+ 
