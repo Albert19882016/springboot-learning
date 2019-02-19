@@ -4,7 +4,7 @@ server:
 spring:
   datasource:
     name: test
-    url: jdbc:mysql://127.0.0.1:3306/sample?characterEncoding=UTF-8&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC
+    jdbc-url: jdbc:mysql://127.0.0.1:3306/sample?useUnicode=true&autoReconnect=true&characterEncoding=UTF-8&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC
     username: root
     password: root
 
@@ -29,7 +29,9 @@ spring:
     elasticsearch:
       cluster-name: my-application
       #节点的地址 注意api模式下端口号是9300，千万不要写成9200
-      cluster-nodes: 127.0.0.1:9300
+      cluster-nodes: 127.0.0.1
+      port: 9300
+      pool: 5
       #是否开启本地存储
       repositories:
         enabled: true

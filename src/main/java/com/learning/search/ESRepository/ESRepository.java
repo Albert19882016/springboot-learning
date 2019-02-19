@@ -4,6 +4,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.learning.search.annotations.ESDocument;
+import java.lang.reflect.Field;
 import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.get.MultiGetItemResponse;
@@ -19,6 +21,8 @@ import org.elasticsearch.script.mustache.SearchTemplateRequestBuilder;
 import org.elasticsearch.search.SearchHit;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.elasticsearch.core.ElasticsearchTemplate;
+
+import javax.persistence.Id;
 import java.io.IOException;
 import java.lang.reflect.ParameterizedType;
 import java.util.ArrayList;
@@ -265,30 +269,28 @@ public class ESRepository<T extends Object> {
     }
 
     String[] prepareIndex(T t){
-//        String index= t.getClass().getAnnotation(EsDocument.class).index();
-//        String type= t.getClass().getAnnotation(EsDocument.class).type();
-//        String id=null;
-//        Field[] fields=t.getClass().getDeclaredFields();
-//        for(Field f:fields){
-//            if(f.getAnnotation(Id.class)!=null){
-//                try {
-//                    f.setAccessible(true);
-//                    id=f.get(t).toString();
-//                } catch (IllegalAccessException e) {
-//                    e.printStackTrace();
-//                }
-//                break;
-//            }
-//        }
-//        return new String[]{index,type,id};
-        return new String[]{"","",""};
+        String index= t.getClass().getAnnotation(ESDocument.class).index();
+        String type= t.getClass().getAnnotation(ESDocument.class).type();
+        String id=null;
+        Field[] fields=t.getClass().getDeclaredFields();
+        for(Field f:fields){
+            if(f.getAnnotation(Id.class)!=null){
+                try {
+                    f.setAccessible(true);
+                    id=f.get(t).toString();
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace();
+                }
+                break;
+            }
+        }
+        return new String[]{index,type,id};
     }
 
     String[] prepareIndex(){
-//        Class <T> entityClass = (Class <T>)((ParameterizedType)this.getClass().getGenericSuperclass()).getActualTypeArguments()[0];
-//        String index= entityClass.getAnnotation(EsDocument.class).index();
-//        String type= entityClass.getAnnotation(EsDocument.class).type();
-//        return new String[]{null,type};
-        return new String[]{"",""};
+        Class <T> entityClass = (Class <T>)((ParameterizedType)this.getClass().getGenericSuperclass()).getActualTypeArguments()[0];
+        String index= entityClass.getAnnotation(ESDocument.class).index();
+        String type= entityClass.getAnnotation(ESDocument.class).type();
+        return new String[]{index,type};
     }
 }
