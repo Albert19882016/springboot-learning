@@ -1,4 +1,4 @@
-package com.learning.search.Configurations;
+package com.learning.search.configuration;
 
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.Settings;
@@ -8,11 +8,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.FilterType;
+import org.springframework.data.elasticsearch.repository.ElasticsearchRepository;
+import org.springframework.data.elasticsearch.repository.config.EnableElasticsearchRepositories;
 import java.net.InetAddress;
 
-//public class ESConfiguration implements FactoryBean<Client>, InitializingBean, DisposableBean
 @Configuration
+@EnableElasticsearchRepositories(basePackages = "com.learning.search",includeFilters = @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, value = ElasticsearchRepository.class) )
 public class ESConfiguration  {
 
     private static final Logger logger = LoggerFactory.getLogger(ESConfiguration.class);

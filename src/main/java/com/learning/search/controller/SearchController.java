@@ -27,4 +27,14 @@ public class SearchController {
         return searchService.findOne(empNo);
     }
 
+
+    @RequestMapping(path = "/saveToEs", method = RequestMethod.GET)
+    public void saveToEs(){
+        searchService.saveToEs();
+    }
+
+    @RequestMapping(path = "/getFromEs", method = RequestMethod.GET)
+    public void getFromEs(){
+        searchService.getOneFromEs();
+    }
 }

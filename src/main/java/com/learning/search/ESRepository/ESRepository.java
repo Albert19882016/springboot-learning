@@ -31,7 +31,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
-
 public class ESRepository<T extends Object> {
 
     @Autowired
@@ -217,8 +216,8 @@ public class ESRepository<T extends Object> {
                 .setRequest(new SearchRequest().indices(params[0]).types(params[1]))
                 .get()
                 .getResponse();
-        String value =sr.toString();
-        List<Object> objs= sr.getHits().getHits()[0].getFields().get("start").getValues();
+        String value = sr.toString();
+        List<Object> objs = sr.getHits().getHits()[0].getFields().get("start").getValues();
         return objs;
     }
 
