@@ -92,7 +92,8 @@ zookeeper:
 hbase:
   config:
     hbase.zookeeper.quorum: 127.0.0.1
-    hbase.zookeeper.port: 2181
+    #hbase.zookeeper.port: 2181
+    hbase.zookeeper.property.clientPort: 2181
     hbase.zookeeper.znode: /hbase
     hbase.client.keyvalue.maxsize: 1572864000
 

@@ -1,4 +1,4 @@
-package com.learning.search.ESRepository;
+package com.learning.search.esRepository;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -21,7 +21,7 @@ import org.elasticsearch.script.mustache.SearchTemplateRequestBuilder;
 import org.elasticsearch.search.SearchHit;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.elasticsearch.core.ElasticsearchTemplate;
-
+import org.springframework.stereotype.Component;
 import javax.persistence.Id;
 import java.io.IOException;
 import java.lang.reflect.ParameterizedType;
@@ -31,19 +31,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
-public class ESRepository<T extends Object> {
+@Component
+public class GeneralEsRepository<T extends Object> {
 
     @Autowired
     private ElasticsearchTemplate elasticsearchTemplate;
 
     ObjectMapper mapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
-    public String query(String script,Map<String, Object> temParams) {
+    public String query(String script,Map<String, Object> input) {
         String[] params = prepareIndex();
         SearchResponse sr = new SearchTemplateRequestBuilder(elasticsearchTemplate.getClient())
                 .setScript(script)
                 .setScriptType(ScriptType.STORED)
-                .setScriptParams(temParams)
+                .setScriptParams(input)
                 .setRequest(new SearchRequest().indices(params[0]).types(params[1]))
                 .get()
                 .getResponse();
@@ -52,7 +53,6 @@ public class ESRepository<T extends Object> {
         String s="{\"total\":"+total+",\"data\":[";
         for(int i=0;i<hits.length;i++){
             s += hits[i].getSourceAsString();
-            //hits[i].getSourceAsMap();
             if(i!=hits.length-1){
                 s+=",";
             }
@@ -72,12 +72,12 @@ public class ESRepository<T extends Object> {
     searchRequestBuilder.setQuery(functionScoreQuery(QueryBuilders.matchQuery("name","中华").operator(Operator.AND),scriptScoreFunction));
     */
 
-    public T queryOne(String script,Map<String, Object> temParams,Map<String,Long> mtotal) throws IOException {
+    public T queryOne(String script,Map<String, Object> input, Map<String,Long> mtotal) throws IOException {
         String[] params = prepareIndex();
         SearchResponse sr = new SearchTemplateRequestBuilder(elasticsearchTemplate.getClient())
                 .setScript(script)
                 .setScriptType(ScriptType.STORED)
-                .setScriptParams(temParams)
+                .setScriptParams(input)
                 .setRequest(new SearchRequest().indices(params[0]).types(params[1]))
                 .get()
                 .getResponse();
@@ -93,12 +93,12 @@ public class ESRepository<T extends Object> {
         return t;
     }
 
-    public List<T> queryList(String script,Map<String, Object> temParams,Map<String,Long> mtotal) throws IOException {
+    public List<T> queryList(String script,Map<String, Object> input,Map<String,Long> mtotal) throws IOException {
         String[] params = prepareIndex();
         SearchResponse sr = new SearchTemplateRequestBuilder(elasticsearchTemplate.getClient())
                 .setScript(script)
                 .setScriptType(ScriptType.STORED)
-                .setScriptParams(temParams)
+                .setScriptParams(input)
                 .setRequest(new SearchRequest().indices(params[0]).types(params[1]))
                 .get()
                 .getResponse();
@@ -128,7 +128,6 @@ public class ESRepository<T extends Object> {
     public T getOneEntity(String id){
         String[] params = prepareIndex() ;
         GetResponse response = elasticsearchTemplate.getClient().prepareGet(params[0],params[1],id).get();
-        String s= response.getSourceAsString();
         try {
             T t = mapper.readValue(response.getSourceAsBytes(),(Class <T>)((ParameterizedType)this.getClass().getGenericSuperclass()).getActualTypeArguments()[0]);
             return t;
@@ -146,7 +145,7 @@ public class ESRepository<T extends Object> {
             GetResponse response = itemResponse.getResponse();
             if (response.isExists()) {
                 try {
-                    T t= mapper.readValue(response.getSourceAsBytes(),(Class <T>)((ParameterizedType)this.getClass().getGenericSuperclass()).getActualTypeArguments()[0]);
+                    T t = mapper.readValue(response.getSourceAsBytes(),(Class <T>)((ParameterizedType)this.getClass().getGenericSuperclass()).getActualTypeArguments()[0]);
                     ts.add(t);
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -164,7 +163,7 @@ public class ESRepository<T extends Object> {
             e.printStackTrace();
         }
         String[] params = prepareIndex(t);
-        IndexResponse response= elasticsearchTemplate.getClient().prepareIndex(params[0],params[1],params[2]).setSource(json,XContentType.JSON).get();
+        IndexResponse response = elasticsearchTemplate.getClient().prepareIndex(params[0],params[1],params[2]).setSource(json,XContentType.JSON).get();
         String result= response.getResult().getLowercase();
         if(result.equals("created")){
             return true;
@@ -174,14 +173,14 @@ public class ESRepository<T extends Object> {
 
     public boolean update(T t) {
         String[] params = prepareIndex(t);
-        byte[] json =null;
+        byte[] json = null;
         try {
             json = mapper.writeValueAsBytes(t);
         } catch (JsonProcessingException e) {
             e.printStackTrace();
         }
         UpdateRequest updateRequest = new UpdateRequest(params[0], params[1],params[2]).doc(json,XContentType.JSON);
-        UpdateResponse response= null;
+        UpdateResponse response = null;
         try {
             response = elasticsearchTemplate.getClient().update(updateRequest).get();
         } catch (InterruptedException e) {
@@ -200,7 +199,7 @@ public class ESRepository<T extends Object> {
     public boolean delete(String id) {
         String[] params = prepareIndex();
         DeleteResponse response = elasticsearchTemplate.getClient().prepareDelete(params[0],params[1],id).get();
-        String result= response.getResult().getLowercase();
+        String result = response.getResult().getLowercase();
         if(result.equals("deleted")){
             return true;
         }
@@ -216,13 +215,12 @@ public class ESRepository<T extends Object> {
                 .setRequest(new SearchRequest().indices(params[0]).types(params[1]))
                 .get()
                 .getResponse();
-        String value = sr.toString();
         List<Object> objs = sr.getHits().getHits()[0].getFields().get("start").getValues();
         return objs;
     }
 
     public Long getAggValue(String script,Map<String,Object> param) throws IOException {
-        String[] params= prepareIndex();
+        String[] params = prepareIndex();
         SearchResponse sr = new SearchTemplateRequestBuilder(elasticsearchTemplate.getClient())
                 .setScript(script)
                 .setScriptType(ScriptType.STORED)
@@ -230,16 +228,16 @@ public class ESRepository<T extends Object> {
                 .setRequest(new SearchRequest().indices(params[0]).types(params[1]))
                 .get()
                 .getResponse();
-        String value =sr.toString();
+        String value = sr.toString();
         Map<String,Object> map= mapper.readValue(value,new TypeReference<HashMap<String, Object>>() {});
         Map<String,Object> map1= (Map<String,Object>)map.get("aggregations");
         Map<String,Object> map2= (Map<String,Object>)map1.get("agg_num");
-        Float value1= Float.parseFloat(map2.get("value").toString());
-        return value1.longValue();
+        Float result = Float.parseFloat(map2.get("value").toString());
+        return result.longValue();
     }
 
     public Long getTotalValue(String script,Map<String,Object> param) throws IOException {
-        String[] params= prepareIndex();
+        String[] params = prepareIndex();
         SearchResponse sr = new SearchTemplateRequestBuilder(elasticsearchTemplate.getClient())
                 .setScript(script)
                 .setScriptType(ScriptType.STORED)
@@ -247,7 +245,7 @@ public class ESRepository<T extends Object> {
                 .setRequest(new SearchRequest().indices(params[0]).types(params[1]))
                 .get()
                 .getResponse();
-        Long num= sr.getHits().getTotalHits();
+        Long num = sr.getHits().getTotalHits();
         return num;
     }
 
@@ -268,15 +266,15 @@ public class ESRepository<T extends Object> {
     }
 
     String[] prepareIndex(T t){
-        String index= t.getClass().getAnnotation(ESDocument.class).index();
-        String type= t.getClass().getAnnotation(ESDocument.class).type();
-        String id=null;
-        Field[] fields=t.getClass().getDeclaredFields();
+        String index = t.getClass().getAnnotation(ESDocument.class).index();
+        String type = t.getClass().getAnnotation(ESDocument.class).type();
+        String id = null;
+        Field[] fields = t.getClass().getDeclaredFields();
         for(Field f:fields){
-            if(f.getAnnotation(Id.class)!=null){
+            if(f.getAnnotation(Id.class) != null){
                 try {
                     f.setAccessible(true);
-                    id=f.get(t).toString();
+                    id = f.get(t).toString();
                 } catch (IllegalAccessException e) {
                     e.printStackTrace();
                 }
@@ -288,8 +286,8 @@ public class ESRepository<T extends Object> {
 
     String[] prepareIndex(){
         Class <T> entityClass = (Class <T>)((ParameterizedType)this.getClass().getGenericSuperclass()).getActualTypeArguments()[0];
-        String index= entityClass.getAnnotation(ESDocument.class).index();
-        String type= entityClass.getAnnotation(ESDocument.class).type();
+        String index = entityClass.getAnnotation(ESDocument.class).index();
+        String type = entityClass.getAnnotation(ESDocument.class).type();
         return new String[]{index,type};
     }
 }

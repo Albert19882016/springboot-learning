@@ -1,0 +1,11 @@
+spring:
+  application:
+    name: lesson-service
+  cloud:
+    config:
+      uri: http://${confighost:127.0.0.1}:8888
+      label: ${label:trial}
+      profile: ${profile:dev}
+      failFast: true
+      username: user
+      password: xxxxxxxxx

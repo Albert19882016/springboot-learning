@@ -41,42 +41,42 @@ GET hockey/_search
   }
 }
 
+
+实战：
 1. 集群中创建查询脚本
-POST _scripts/generic-script
+POST _scripts/search-template
 {
-  "script": {
+  "script":{
     "lang": "mustache",
-    "source":
-     """{
-       "from":"{{from}}",
-       "size":"{{size}}",
-       "sort":[{{#toJson}}sort{{/toJson}}],
-       "query":{
-          "function_score":{
-             "query":{
-               "bool":{
-                  "filter":[
-                    {{#toJson}}clauses{{/toJson}}
-                  ],
-                  "must":[
-                    {{#toJson}}matches{{/toJson}}
-                  ]
-               }
-             }
+    "source":"""{
+      "from":{{from}},
+      "size":{{size}},
+      "sort":[{{#toJson}}orderBy{{/toJson}}],
+      "query":{
+        "function_score":{
+          "query":{
+            "bool":{
+              "filter":[
+                {{#toJson}}filters{{/toJson}}
+              ],
+              "must":[
+                {{#toJson}}musts{{/toJson}}
+              ]
+            }
           }
-       }
-     }"""
+        }
+      }
+    }"""
   }
 }
 
-可以通过执行 GET _scripts/<script_id>获取脚本信息
+可以通过执行 GET _scripts/<script_id>获取脚本信息：
+  GET _scripts/search-template
 
 2. 通过map传递参数，五个key分别为 from/size/sort/clauses/matches
 
-
-
 3. 也可以用查询模板来简化ES查询 (search template)
-  -POST _search/template/<template_id>
+POST _search/template/<template_id>
 {
     "template": {
         "query": {

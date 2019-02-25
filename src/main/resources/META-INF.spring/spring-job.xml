@@ -1,6 +1,37 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <beans xmlns="http://www.springframework.org/schema/beans"
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:reg="http://www.dangdang.com/schema/ddframe/reg" xmlns:job="http://www.dangdang.com/schema/ddframe/job"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+            http://www.springframework.org/schema/context
+            http://www.springframework.org/schema/context/spring-context-4.1.xsd
+            http://www.dangdang.com/schema/ddframe/reg
+            http://www.dangdang.com/schema/ddframe/reg/reg.xsd
+            http://www.dangdang.com/schema/ddframe/job
+            http://www.dangdang.com/schema/ddframe/job/job.xsd">
+
+    <context:component-scan base-package="com.learning.search.x_job"/>
+
+    <reg:zookeeper id="jobRegCenter"
+                    server-lists="${dubbo.registry.address}"
+                    namespace="${job.elastic.namespace}"
+                    base-sleep-time-milliseconds="${job.elastic.base-sleep-time-milliseconds}"
+                    max-sleep-time-milliseconds="${job.elastic.max-sleep-time-milliseconds}"
+                    max-retries="${job.elastic.max-retries}"/>
+
+    <job:simple id="xxx"
+                class="com.learning.search.x_job.xxx"
+                registry-center-ref="jobRegCenter"
+                sharding-total-count="1"
+                cron="${job.elastic.cron.xxx}"
+                sharding-item-parameters="0=A"
+                monitor-execution="false"
+                monitor-port="${job.elastic.monitor-port}"
+                failover="true"
+                description="comment"
+                disabled="false"
+                overwrite="true"/>
 
 </beans>
