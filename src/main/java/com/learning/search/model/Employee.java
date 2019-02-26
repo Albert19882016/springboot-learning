@@ -3,6 +3,7 @@ package com.learning.search.model;
 import org.springframework.data.elasticsearch.annotations.Document;
 import org.springframework.data.elasticsearch.annotations.Field;
 import org.springframework.data.elasticsearch.annotations.FieldType;
+import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
@@ -25,28 +26,33 @@ import java.io.Serializable;
 @Table(name = "employees")
 @Document(indexName = "employees", type = "employee")
 public class Employee implements Serializable {
-
     @Id
-    private Long id;
+    private Integer id;
 
+    @Column(name = "emp_no")
     private String empNo;
 
+    @Column(name = "first_name")
     @Field(type=FieldType.Text)
     private String firstName;
 
+    @Column(name = "birth_date")
     private String birthDate;
 
+    @Column(name = "last_name")
     private String lastName;
 
-    private Byte gender;
+    @Column(name = "gender")
+    private String gender;
 
+    @Column(name = "hire_date")
     private String hireDate;
 
-    public Long getId() {
+    public Integer getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(Integer id) {
         this.id = id;
     }
 
@@ -82,11 +88,11 @@ public class Employee implements Serializable {
         this.lastName = lastName;
     }
 
-    public Byte getGender() {
+    public String getGender() {
         return gender;
     }
 
-    public void setGender(Byte gender) {
+    public void setGender(String gender) {
         this.gender = gender;
     }
 

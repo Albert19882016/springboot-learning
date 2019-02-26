@@ -2,6 +2,7 @@ package com.learning.search.serviceImpl;
 
 import com.learning.search.esRepository.EmployeeRepository;
 import com.learning.search.mapper.SearchServiceMapper;
+import com.learning.search.mapper.SearchServiceRepository;
 import com.learning.search.model.Employee;
 import com.learning.search.service.SearchService;
 import org.slf4j.Logger;
@@ -24,6 +25,9 @@ public class SearchServiceImpl implements SearchService {
     @Autowired
     private SearchServiceMapper searchServiceMapper;
 
+    @Autowired
+    private SearchServiceRepository searchServiceRepository;
+
     @Override
     @Transactional(readOnly = true)
     public Employee search() {
@@ -40,8 +44,10 @@ public class SearchServiceImpl implements SearchService {
 
     @Override
     public void saveToEs() {
-        Iterable<Employee> employees = employeeRepository.findAll();
-        employees.forEach(item -> employeeRepository.save(item));
+        List<Employee> employees = searchServiceRepository.findAll();
+        for(Employee employee: employees) {
+            employeeRepository.save(employee);
+        }
     }
 
     @Override

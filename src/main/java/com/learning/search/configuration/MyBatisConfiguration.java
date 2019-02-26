@@ -58,7 +58,7 @@ public class MyBatisConfiguration {
         return datasource;
     }
 
-    @Bean
+    @Bean(name = "transactionManager")
     public DataSourceTransactionManager dataSourceTransactionManager() {
         return new DataSourceTransactionManager(dataSource());
     }

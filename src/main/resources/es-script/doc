@@ -1,0 +1,204 @@
+Elasticsearch查询模板/脚本：
+
+1. create your search template
+POST _scripts/<template_id>
+{
+  "script": {
+    "lang": "mustache",
+    "source":{
+      "query":{
+        "bool": {
+          "must": [
+            {
+              "match": {
+                "{{field}}": {
+                  "query":"{{query_string}}",
+                  "operator":"{{operator}}"
+                }
+              }
+            },
+            {
+              "term": {
+                "loglevel": {
+                  "value": "{{loglevel}}"
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}
+
+
+2. retrieve the template
+GET _scripts/<template_id>
+
+
+3. to use a stored script
+GET _search/template
+{
+    "id": "<templateName>",
+    "params": {
+        "query_string": "search for these words"
+    }
+}
+
+
+4. or you can search with a inlined template
+GET _search/template
+{
+  "source": {
+    "query": {
+      "match": {
+        "emails": "{{#join}}emails{{/join}}"
+      }
+    }
+  },
+  "params": {
+    "emails": [ "username@email.com", "lastname@email.com" ]
+  }
+}
+
+GET _search/template
+{
+  "source": {
+    "query": {
+      "range": {
+        "born": {
+          "gte"   : "{{date.min}}",
+          "lte"   : "{{date.max}}",
+          "format": "{{#join delimiter='||'}}date.formats{{/join delimiter='||'}}"
+        }
+      }
+    }
+  },
+  "params": {
+    "date": {
+      "min": "2016",
+      "max": "31/12/2017",
+      "formats": ["dd/MM/yyyy", "yyyy"]
+    }
+  }
+}
+
+
+search template will be rendered like:
+
+{
+  "query": {
+    "bool": {
+      "filter": [
+        {
+          "term": {
+              "subjectCode.keyword": "汉语"
+           }
+        },
+        {
+          "term": {
+              "teacherName.keyword": "刘德华"
+          }
+        },
+		"range": {
+          "lessonStartTime": {
+            "gte": 1000,
+            "lte": 2000000000
+          }
+        }
+       },{
+        "range": {
+          "members": {
+            "gte": 3,
+            "lte": 6
+          }
+        }
+       }
+      ],
+      "must": [
+        {
+         "wildcard": {
+            "studentNames.keyword": "*俊哥*"
+         }
+        }
+      ]
+    }
+  },
+  "from": 0,
+  "size": 10
+}
+
+
+
+还有另一种写法，结合function_score实现更丰富的功能：
+
+先看看elasticsearch官方的script dsl块文本的写法，
+通过一对"""  """来包含块文本：
+{
+  "query": {
+    "function_score": {
+      "script_score": {
+        "script": {
+          "lang": "painless",
+          "source": """
+            int total = 0;
+            for (int i = 0; i < doc['goals'].length; ++i) {
+              total += doc['goals'][i];
+            }
+            return total;
+          """
+        }
+      }
+    }
+  }
+}
+
+GET hockey/_search
+{
+  "query": {
+    "match_all": {}
+  },
+  "sort": {
+    "_script": {
+      "type": "string",
+      "order": "asc",
+      "script": {
+        "lang": "painless",
+        "source": "doc['first.keyword'].value + ' ' + doc['last.keyword'].value"
+      }
+    }
+  }
+}
+
+使用步骤：
+1. 集群中创建查询脚本
+POST _scripts/search-template
+{
+  "script":{
+    "lang": "mustache",
+    "source":"""{
+      "from":{{from}},
+      "size":{{size}},
+      "sort":[{{#toJson}}orderBy{{/toJson}}],
+      "query":{
+        "function_score":{
+          "query":{
+            "bool":{
+              "filter":[
+                {{#toJson}}filters{{/toJson}}
+              ],
+              "must":[
+                {{#toJson}}musts{{/toJson}}
+              ]
+            }
+          }
+        }
+      }
+    }"""
+  }
+}
+
+可以通过执行 GET _scripts/<script_id>获取脚本信息：
+  GET _scripts/search-template
+
+2. 通过map传递参数，五个key分别为 from/size/sort/clauses/matches
