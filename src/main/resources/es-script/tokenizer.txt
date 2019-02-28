@@ -1,0 +1,136 @@
+IK(中文)分词器有两种分词模式：ik_max_word和ik_smart模式。
+
+1、ik_max_word
+
+会将文本做最细粒度的拆分，比如会将“中华人民共和国人民大会堂”拆分为
+“中华人民共和国、中华人民、中华、华人、人民共和国、人民、共和国、大会堂、大会、会堂等词语。
+
+2、ik_smart
+会做最粗粒度的拆分，比如会将“中华人民共和国人民大会堂”拆分为中华人民共和国、人民大会堂。
+
+测试两种分词模式的效果：
+
+发送：post localhost:9200/_analyze
+测试ik_max_word
+{“text”:“中华人民共和国人民大会堂”,“analyzer”:“ik_max_word” }
+测试ik_smart
+{“text”:“中华人民共和国人民大会堂”,“analyzer”:“ik_smart” }
+
+最佳实践
+两种分词器使用的最佳实践是：索引时用ik_max_word，在搜索时用ik_smart。
+
+curl -XPOST http://localhost:9200/index/fulltext/_mapping -d'
+{
+    "properties": {
+        "content": {
+            "type": "text",
+            "analyzer": "ik_max_word",
+            "search_analyzer": "ik_max_word"
+        }
+    }
+} 
+
+text类型：支持分词、全文检索，不支持聚合、排序操作。 
+适合大字段存储，如：文章详情、content字段等；
+
+keyword类型：支持精确匹配，支持聚合、排序操作。 
+适合精准字段匹配，如：url、name、title等字段。 
+一般情况，text和keyword共存，设置mapping如下：
+{
+  "mappings": {
+	"ali_type": {
+		"properties": {
+			"title_v1": {
+				"analyzer":"ik_max_word",
+				"type":"text",
+				"term_vector" : "with_positions_offsets",
+				"fields":{
+					"keyword":{
+						"ignore_above":256,
+						"type":"keyword"
+					}
+				}
+			}
+		}
+	}
+  }
+}
+
+
+
+3. pinyin的分词器使用  
+
+
+
+
+
+
+
+
+综合用例--
+对同一个字段同时进行汉语及拼音搜索。
+multi_field 多域类型允许你对同一个值以映射的方式定义成多个基本类型。
+比如，如果你定义一个 string 类型的字段，你需要这个字段的分词一会是analyzed，
+但是有时候又希望该字段是 not_analyzed 类型的，通过使用 multi_field 
+就可以很方便的解决这个问题.
+1.自定义分词，开始之前，需要先定义好分词，可以在配置文件里面定义，
+但是不灵活，定义完了之后，需要重启es，还一种方式就是动态的添加自定义分词，如下所示：
+
+curl -XPOST http://localhost:9200/medcl/_close
+curl -XPUT http://localhost:9200/medcl/_settings -d'
+{
+    "index" : {
+        "analysis" : {
+            "analyzer" : {
+                "pinyin_analyzer" : {
+                    "tokenizer" : ["my_pinyin"],
+                    "filter" : ["standard","nGram"]
+                }
+            },
+            "tokenizer" : {
+                "my_pinyin" : {
+                    "type" : "pinyin",
+                    "first_letter" : "prefix",
+                    "padding_char" : ""
+                }
+            }
+        }
+    }
+}'
+curl -XPOST http://localhost:9200/medcl/_open
+上面自定义了一个名为my_pinyin的tokenizer，和名为pinyin_analyzer的analyzer，
+值得注意的是，修改索引的setting，需要先close索引，修改完之后，open就好了。
+
+2.创建好索引，设置好analyzer，我们再来定义Type的，Type名称就用folks吧，有一个name字段，用来存姓名就好了。
+
+curl -XPOST http://localhost:9200/medcl/folks/_mapping -d'
+{
+    "folks": {
+        "properties": {
+            "name": {
+                "type": "multi_field",
+                "fields": {
+                    "name": {
+                        "type": "string",
+                        "store": "no",
+                        "term_vector": "with_positions_offsets",
+                        "analyzer": "pinyin_analyzer",
+                        "boost": 10
+                    },
+                    "primitive": {
+                        "type": "string",
+                        "store": "yes",
+                        "analyzer": "keyword"
+                    }
+                }
+            }
+        }
+    }
+}'
+上面定义了一个folks的Type，有一个字段名称为name，该字段数据类型为string，对象类型为multi-field，
+正因为类型是multi-field，它有了一些额外的参数可以进行设置，即fields，fields里面设置衍生字段的属性，
+可以是多个，每个都可以分别设置analyzer，store等参数，和core类型无异，如上，定义了一个name，
+使用的是pinyin analyzer和一个primitive，使用的是keyword analyzer，当想通过拼音搜索的时候，
+就对第一个字段name进行搜索就行了，如果需要完整匹配中文姓名，则对primitive字段进行搜索就行了。
+
+

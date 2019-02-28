@@ -1,0 +1,59 @@
+POST _scripts/search-template-a
+{
+  "script":{
+    "lang": "mustache",
+    "source":"""{
+      "from":{{from}},
+      "size":{{size}},
+      "sort":[{{#toJson}}orderBy{{/toJson}}],
+      "query":{
+        "function_score":{
+          "query":{
+            "bool":{
+              "filter":[
+                {{#toJson}}filters{{/toJson}}
+              ],
+              "must":[
+                {{#toJson}}musts{{/toJson}}
+              ]
+            }
+          }
+        }
+      }
+    }"""
+  }
+}
+
+
+POST _scripts/search-template-b
+{
+  "script": {
+    "lang": "mustache",
+    "source":"""{
+      "from":{{from}},
+      "size":{{size}},
+      "sort":[{{#toJson}}orderBy{{/toJson}}],
+      "query":{
+        "bool": {
+          "must": [
+            {
+              "match": {
+                "{{field}}": {
+                  "query":"{{query_string}}",
+                  "operator":"{{operator}}"
+                }
+              }
+            },
+            {
+              "term": {
+                "loglevel": {
+                  "value": "{{loglevel}}"
+                }
+              }
+            }
+          ]
+        }
+      }
+    }"""
+  } 
+}

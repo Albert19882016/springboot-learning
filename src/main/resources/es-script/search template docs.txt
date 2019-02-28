@@ -1,0 +1,379 @@
+1. register your search template 
+POST _scripts/<templateName>
+{
+  "script": {
+    "lang": "mustache",
+    "source":{
+      "query":{
+        "bool": {
+          "must": [
+            {
+              "match": {
+                "{{field}}": {
+                  "query":"{{query_string}}",
+                  "operator":"{{operator}}"
+                }
+              }
+            },
+            {
+              "term": {
+                "loglevel": {
+                  "value": "{{loglevel}}"
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  } 
+}
+
+如：
+POST _scripts/search-template
+{
+  "script":{
+    "lang": "mustache",
+    "source":"""{
+      "from":{{from}},
+      "size":{{size}},
+      "sort":[{{#toJson}}orderBy{{/toJson}}],
+      "query":{
+        "function_score":{
+          "query":{
+            "bool":{
+              "filter":[
+                {{#toJson}}filters{{/toJson}}
+              ],
+              "must":[
+                {{#toJson}}musts{{/toJson}}
+              ]
+            }
+          }
+        }
+      }
+    }"""
+  }
+}
+
+
+2. retrieve the template
+      GET _scripts/<templateName>
+   OR delete the template
+      DELETE _scripts/<templatename>
+  
+
+3. to use a pre-registered and stored script 
+GET _search/template
+{
+    "id": "<templateName>", 
+    "params": {
+        "query_string": "search for these words"
+    }
+}
+
+
+4. or you can search with a inlined template
+GET _search/template
+{
+  "source": {
+    "query": {
+      "match": {
+        "emails": "{{#join}}emails{{/join}}"
+      }
+    }
+  },
+  "params": {
+    "emails": [ "username@email.com", "lastname@email.com" ]
+  }
+}
+
+GET _search/template
+{
+  "source": {
+    "query": {
+      "range": {
+        "born": {
+          "gte"   : "{{date.min}}",
+          "lte"   : "{{date.max}}",
+          "format": "{{#join delimiter='||'}}date.formats{{/join delimiter='||'}}"
+        }
+      }
+    }
+  },
+  "params": {
+    "date": {
+      "min": "2016",
+      "max": "31/12/2017",
+      "formats": ["dd/MM/yyyy", "yyyy"]
+    }
+  }
+}
+
+
+search template will be rendered like:
+{
+  "query": {
+    "bool": {
+      "filter": [
+        {
+          "term": {
+              "subjectCode.keyword": "汉语"
+           }
+        },
+        {
+          "term": {
+              "teacherName.keyword": "刘德华"
+          }
+        },
+		"range": {
+          "lessonStartTime": {
+            "gte": 1000,
+            "lte": 2000000000
+          }
+        }
+       },{
+        "range": {
+          "members": {
+            "gte": 3,
+            "lte": 6
+          }
+        }
+       }
+      ], 
+      "must": [
+        {
+         "wildcard": {
+            "studentNames.keyword": "*俊哥*"
+         }
+        }
+      ]
+    }
+  },
+  "from": 0,
+  "size": 10
+}
+ 
+
+
+To dive into more examples and details from the OFFICIAL GUIDE:
+1.
+GET _search/template
+{
+    "source" : {
+      "query": { "match" : { "{{my_field}}" : "{{my_value}}" } },
+      "size" : "{{my_size}}"
+    },
+    "params" : {
+        "my_field" : "message",
+        "my_value" : "some message",
+        "my_size" : 5
+    }
+}
+
+2. 
+GET _search/template
+{
+    "source": "{\"query\":{\"bool\":{\"must\": {{#toJson}}clauses{{/toJson}} }}}",
+    "params": {
+        "clauses": [
+            { "term": { "user" : "foo" } },
+            { "term": { "user" : "bar" } }
+        ]
+   }
+}
+which is rendered as:
+{
+    "query" : {
+      "bool" : {
+        "must" : [
+          {
+            "term" : {
+                "user" : "foo"
+            }
+          },
+          {
+            "term" : {
+                "user" : "bar"
+            }
+          }
+        ]
+      }
+    }
+}
+
+3.
+Concatenating array of valuesedit
+The {{#join}}array{{/join}} function can be used 
+to concatenate the values of an array as a comma delimited string:
+GET _search/template
+{
+  "source": {
+    "query": {
+      "match": {
+        "emails": "{{#join}}emails{{/join}}"
+      }
+    }
+  },
+  "params": {
+    "emails": [ "username@email.com", "lastname@email.com" ]
+  }
+}
+which is rendered as:
+{
+    "query" : {
+        "match" : {
+            "emails" : "username@email.com,lastname@email.com"
+        }
+    }
+}
+
+The function also accepts a custom delimiter:
+GET _search/template
+{
+  "source": {
+    "query": {
+      "range": {
+        "born": {
+            "gte"   : "{{date.min}}",
+            "lte"   : "{{date.max}}",
+            "format": "{{#join delimiter='||'}}date.formats{{/join delimiter='||'}}"
+            }
+      }
+    }
+  },
+  "params": {
+    "date": {
+        "min": "2016",
+        "max": "31/12/2017",
+        "formats": ["dd/MM/yyyy", "yyyy"]
+    }
+  }
+}
+
+which is rendered as:
+{
+    "query" : {
+      "range" : {
+        "born" : {
+          "gte" : "2016",
+          "lte" : "31/12/2017",
+          "format" : "dd/MM/yyyy||yyyy"
+        }
+      }
+    }
+}
+
+4. Default values 
+A default value is written as {{var}}{{^var}}default{{/var}} for instance:
+{
+  "source": {
+    "query": {
+      "range": {
+        "line_no": {
+          "gte": "{{start}}",
+          "lte": "{{end}}{{^end}}20{{/end}}"
+        }
+      }
+    }
+  },
+  "params": { ... }
+}
+
+When params is { "start": 10, "end": 15 } this query would be rendered as:
+{
+    "range": {
+        "line_no": {
+            "gte": "10",
+            "lte": "15"
+        }
+  }
+}
+
+But when params is { "start": 10 } this query would use the default value for end:
+{
+    "range": {
+        "line_no": {
+            "gte": "10",
+            "lte": "20"
+        }
+    }
+}
+
+5.Conditional clausesedit
+Conditional clauses cannot be expressed using the JSON form of the template. 
+Instead, the template must be passed as a string. For instance, 
+let’s say we wanted to run a match query on the line field, and 
+optionally wanted to filter by line numbers, where start and end are optional.
+
+The params would look like:
+{
+    "params": {
+        "text":      "words to search for",
+        "line_no": {               <1
+            "start": 10,           <2
+            "end":   20            <3
+        }
+    }
+}
+
+All three of these elements are optional.
+We could write the query as:
+{
+  "query": {
+    "bool": {
+      "must": {
+        "match": {
+          "line": "{{text}}" 
+        }
+      },
+      "filter": {
+        {{#line_no}} 
+          "range": {
+            "line_no": {
+              {{#start}} 
+                "gte": "{{start}}" 
+                {{#end}},{{/end}} 
+              {{/start}} 
+              {{#end}} 
+                "lte": "{{end}}" 
+              {{/end}} 
+            }
+          }
+        {{/line_no}} 
+      }
+    }
+  }
+}
+
+
+As written above, this template is not valid JSON because it includes 
+the section markers like {{#line_no}}. For this reason, the template 
+should either be stored in a file (see Pre-registered templateedit) or, 
+when used via the REST API, should be written as a string:
+"source": "{
+	\"query\":{
+		\"bool\":{
+			\"must\":{
+				\"match\":{
+					\"line\":\"{{text}}\"
+				}
+			},
+			\"filter\":{
+				{{#line_no}}
+					\"range\":{
+						\"line_no\":{
+							{{#start}}
+								\"gte\": \"{{start}}\"
+								{{#end}},{{/end}}
+							{{/start}}
+							{{#end}}
+								\"lte\":\"{{end}}\"
+							{{/end}}}}
+				{{/line_no}}
+			}
+		}
+	}
+}"
+
+
