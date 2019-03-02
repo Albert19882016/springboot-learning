@@ -77,7 +77,7 @@ public class ExcelUtil {
                             cellValue = "ERROR";
                             break;
                         default:
-                            cellValue = "UNDEFINE";
+                            cellValue = "UNDEFINED";
                     }
                 } else {
                     cellValue = "";
@@ -91,6 +91,7 @@ public class ExcelUtil {
     }
 
     /**
+     * 还需要生成列名
      * 根据给定的数据直接生成workbook
      */
     public static Workbook createExcel(Workbook workbook, String sheetName, List<List<String>> data) {

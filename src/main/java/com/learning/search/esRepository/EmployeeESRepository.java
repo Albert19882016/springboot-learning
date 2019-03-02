@@ -2,9 +2,9 @@ package com.learning.search.esRepository;
 
 import com.learning.search.model.Employee;
 import org.springframework.data.elasticsearch.repository.ElasticsearchRepository;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Repository;
 
-@Component
-public interface EmployeeRepository extends ElasticsearchRepository<Employee, Long> {
+@Repository
+public interface EmployeeESRepository extends ElasticsearchRepository<Employee, Long> {
 
 }

@@ -1,16 +1,14 @@
 package com.learning.search.esRepository;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.learning.search.annotations.ESDocument;
-import java.lang.reflect.Field;
 import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.get.MultiGetItemResponse;
 import org.elasticsearch.action.get.MultiGetResponse;
-import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.update.UpdateRequest;
@@ -20,10 +18,13 @@ import org.elasticsearch.script.ScriptType;
 import org.elasticsearch.script.mustache.SearchTemplateRequestBuilder;
 import org.elasticsearch.search.SearchHit;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.elasticsearch.annotations.Document;
 import org.springframework.data.elasticsearch.core.ElasticsearchTemplate;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Repository;
+
 import javax.persistence.Id;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -31,35 +32,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
-@Component
-public class GeneralEsRepository<T extends Object> {
+@Repository
+public abstract class ElasticsearchScriptFactory<T extends Object> {
 
     @Autowired
     private ElasticsearchTemplate elasticsearchTemplate;
 
     ObjectMapper mapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-
-    public String query(String script,Map<String, Object> input) {
-        String[] params = prepareIndex();
-        SearchResponse sr = new SearchTemplateRequestBuilder(elasticsearchTemplate.getClient())
-                .setScript(script)
-                .setScriptType(ScriptType.STORED)
-                .setScriptParams(input)
-                .setRequest(new SearchRequest().indices(params[0]).types(params[1]))
-                .get()
-                .getResponse();
-        SearchHit[] hits= sr.getHits().getHits();
-        long total= sr.getHits().getTotalHits();
-        String s="{\"total\":"+total+",\"data\":[";
-        for(int i=0;i<hits.length;i++){
-            s += hits[i].getSourceAsString();
-            if(i!=hits.length-1){
-                s+=",";
-            }
-        }
-        s += "]}";
-        return s;
-    }
 
    /*
     Map<String, Object> params = new HashMap<>();
@@ -72,7 +51,7 @@ public class GeneralEsRepository<T extends Object> {
     searchRequestBuilder.setQuery(functionScoreQuery(QueryBuilders.matchQuery("name","中华").operator(Operator.AND),scriptScoreFunction));
     */
 
-    public T queryOne(String script,Map<String, Object> input, Map<String,Long> mtotal) throws IOException {
+    public T queryOne(String script, Map<String, Object> input) {
         String[] params = prepareIndex();
         SearchResponse sr = new SearchTemplateRequestBuilder(elasticsearchTemplate.getClient())
                 .setScript(script)
@@ -82,18 +61,25 @@ public class GeneralEsRepository<T extends Object> {
                 .get()
                 .getResponse();
         Long total = sr.getHits().getTotalHits();
-        if(total==0){
+        if(total == 0){
             return null;
         }
-        if(mtotal!=null){
-            mtotal.put("total",total);
-        }
+
+        //Elasticsearch检索到匹配的结果数
+        input.put("es-hit", total);
+
         SearchHit[] hits = sr.getHits().getHits();
-        T t = mapper.readValue(hits[0].getSourceAsString(),(Class <T>)((ParameterizedType)this.getClass().getGenericSuperclass()).getActualTypeArguments()[0]);
+        T t = null;
+        try {
+            t = mapper.readValue(hits[0].getSourceAsString(),(Class <T>)((ParameterizedType)this.getClass().getGenericSuperclass()).getActualTypeArguments()[0]);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
         return t;
     }
 
-    public List<T> queryList(String script,Map<String, Object> input,Map<String,Long> mtotal) throws IOException {
+    public List<T> queryList(String script,Map<String, Object> input) throws IOException {
         String[] params = prepareIndex();
         SearchResponse sr = new SearchTemplateRequestBuilder(elasticsearchTemplate.getClient())
                 .setScript(script)
@@ -102,27 +88,21 @@ public class GeneralEsRepository<T extends Object> {
                 .setRequest(new SearchRequest().indices(params[0]).types(params[1]))
                 .get()
                 .getResponse();
-        Long total=sr.getHits().getTotalHits();
-        if(total==0){
+        Long total = sr.getHits().getTotalHits();
+        if(total == 0){
             return null;
         }
-        if(mtotal!=null){
-            mtotal.put("total",total);
-        }
+
+        //Elasticsearch检索到匹配的结果数
+        input.put("es-hit", total);
+
         SearchHit[] hits= sr.getHits().getHits();
         List<T> list=new ArrayList<>();
         for(SearchHit hit:hits){
-            T t= mapper.readValue(hit.getSourceAsString(),(Class <T>)((ParameterizedType)this.getClass().getGenericSuperclass()).getActualTypeArguments()[0]);
+            T t = mapper.readValue(hit.getSourceAsString(),(Class <T>)((ParameterizedType)this.getClass().getGenericSuperclass()).getActualTypeArguments()[0]);
             list.add(t);
         }
         return list;
-    }
-
-    public String getOne(String id){
-        String[] params = prepareIndex();
-        GetResponse response = elasticsearchTemplate.getClient().prepareGet(params[0],params[1],id).get();
-        String s= response.getSourceAsString();
-        return s;
     }
 
     public T getOneEntity(String id){
@@ -139,23 +119,23 @@ public class GeneralEsRepository<T extends Object> {
 
     public List<T> multiGet(Iterable<String> ids){
         String[] params = prepareIndex();
-        List<T> ts=new ArrayList<>();
+        List<T> list = new ArrayList<>();
         MultiGetResponse multiGetItemResponses = elasticsearchTemplate.getClient().prepareMultiGet().add(params[0],params[1],ids).get();
         for (MultiGetItemResponse itemResponse : multiGetItemResponses) {
             GetResponse response = itemResponse.getResponse();
             if (response.isExists()) {
                 try {
                     T t = mapper.readValue(response.getSourceAsBytes(),(Class <T>)((ParameterizedType)this.getClass().getGenericSuperclass()).getActualTypeArguments()[0]);
-                    ts.add(t);
+                    list.add(t);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
             }
         }
-        return ts;
+        return list;
     }
 
-    public boolean save(T t) {
+/*    public boolean save(T t) {
         byte[] json =null;
         try {
             json = mapper.writeValueAsBytes(t);
@@ -169,7 +149,7 @@ public class GeneralEsRepository<T extends Object> {
             return true;
         }
         return false;
-    }
+    }*/
 
     public boolean update(T t) {
         String[] params = prepareIndex(t);
@@ -206,7 +186,7 @@ public class GeneralEsRepository<T extends Object> {
         return false;
     }
 
-    public List<Object> getFieldValue(String script,Map<String,Object> param) throws IOException {
+    public List<Object> getFieldValue(String script,Map<String,Object> param) {
         String[] params= prepareIndex();
         SearchResponse sr = new SearchTemplateRequestBuilder(elasticsearchTemplate.getClient())
                 .setScript(script)
@@ -229,7 +209,7 @@ public class GeneralEsRepository<T extends Object> {
                 .get()
                 .getResponse();
         String value = sr.toString();
-        Map<String,Object> map= mapper.readValue(value,new TypeReference<HashMap<String, Object>>() {});
+        Map<String,Object> map = mapper.readValue(value,new TypeReference<HashMap<String, Object>>() {});
         Map<String,Object> map1= (Map<String,Object>)map.get("aggregations");
         Map<String,Object> map2= (Map<String,Object>)map1.get("agg_num");
         Float result = Float.parseFloat(map2.get("value").toString());
@@ -247,22 +227,6 @@ public class GeneralEsRepository<T extends Object> {
                 .getResponse();
         Long num = sr.getHits().getTotalHits();
         return num;
-    }
-
-    public float getMaxScore(String script,Map<String,Object> param) throws IOException {
-        String[] params = prepareIndex();
-        SearchResponse sr = new SearchTemplateRequestBuilder(elasticsearchTemplate.getClient())
-                .setScript(script)
-                .setScriptType(ScriptType.INLINE)
-                .setScriptParams(param)
-                .setRequest(new SearchRequest().indices(params[0]).types(params[1]))
-                .get()
-                .getResponse();
-        if(sr.getHits().getHits().length==0){
-            return 0;
-        }
-        float score= sr.getHits().getHits()[0].getScore();
-        return score;
     }
 
     String[] prepareIndex(T t){
@@ -286,8 +250,8 @@ public class GeneralEsRepository<T extends Object> {
 
     String[] prepareIndex(){
         Class <T> entityClass = (Class <T>)((ParameterizedType)this.getClass().getGenericSuperclass()).getActualTypeArguments()[0];
-        String index = entityClass.getAnnotation(ESDocument.class).index();
-        String type = entityClass.getAnnotation(ESDocument.class).type();
+        String index = entityClass.getAnnotation(Document.class).indexName();
+        String type = entityClass.getAnnotation(Document.class).type();
         return new String[]{index,type};
     }
 }

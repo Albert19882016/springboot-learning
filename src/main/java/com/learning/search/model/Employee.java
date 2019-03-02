@@ -30,22 +30,26 @@ public class Employee implements Serializable {
     private Integer id;
 
     @Column(name = "emp_no")
+    @Field(type=FieldType.Keyword)
     private String empNo;
 
     @Column(name = "first_name")
-    @Field(type=FieldType.Text)
+    @Field(type=FieldType.Keyword)
     private String firstName;
 
     @Column(name = "birth_date")
+    @Field(type=FieldType.Keyword)
     private String birthDate;
 
     @Column(name = "last_name")
+    @Field(type=FieldType.Keyword)
     private String lastName;
 
     @Column(name = "gender")
     private String gender;
 
     @Column(name = "hire_date")
+    @Field(type=FieldType.Keyword)
     private String hireDate;
 
     public Integer getId() {
