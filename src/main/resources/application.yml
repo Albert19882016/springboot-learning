@@ -12,13 +12,20 @@ spring:
 
   datasource:
     name: test
-    jdbc-url: jdbc:mysql://127.0.0.1:3306/sample?useUnicode=true&autoReconnect=true&characterEncoding=UTF-8&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC
-    username: root
-    password: root
-
-    # 使用druid数据源
-    type: com.alibaba.druid.pool.DruidDataSource
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    druid:
+      write:
+        type: com.alibaba.druid.pool.DruidDataSource # 使用druid数据源
+        url: jdbc:mysql://127.0.0.1:3306/sample?useUnicode=true&autoReconnect=true&characterEncoding=UTF-8&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC
+        username: root
+        password: root
+        driver-class-name: com.mysql.cj.jdbc.Driver
+      read:
+        num: 1
+        type: com.alibaba.druid.pool.DruidDataSource
+        url: jdbc:mysql://127.0.0.1:3306/sample?useUnicode=true&autoReconnect=true&characterEncoding=UTF-8&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC
+        username: root
+        password: root
+        driver-class-name: com.mysql.cj.jdbc.Driver
     filters: stat
     maxActive: 20
     initialSize: 1
