@@ -16,5 +16,23 @@ public class SearchApplication {
         SpringApplication.run(SearchApplication.class, args);
     }
 
+   /*
+   @Bean
+    public ResourceConfig resourceConfig() {
+        ResourceConfig resourceConfig = new ResourceConfig();
+        ClassPathScanningCandidateComponentProvider scanner = new ClassPathScanningCandidateComponentProvider(true);
+        Set<BeanDefinition> beanDefinitionSet = scanner.findCandidateComponents("com.learning.search.service");
+        beanDefinitionSet.addAll(scanner.findCandidateComponents("com.learning.search.xxx"));
+        beanDefinitionSet.addAll(scanner.findCandidateComponents("com.learning.search.xxx"));
+        Set<Class<?>> clazzSet = new HashSet<Class<?>>();
+        for (BeanDefinition beanDefinition : beanDefinitionSet) {
+            clazzSet.add(ClassUtils.resolveClassName(beanDefinition.getBeanClassName(), resourceConfig.getClassLoader()));
+        }
+        resourceConfig.registerClasses(clazzSet);
+        resourceConfig.property(ServletProperties.FILTER_FORWARD_ON_404, true);
+        return resourceConfig;
+    }
+    */
+
 }
 

@@ -1,0 +1,38 @@
+POST _scripts/script-a
+{
+  "script": {
+    "lang": "mustache",
+    "source": """{
+		"query": {
+			"term": {
+				"empNo": {
+					"value": {{empNo}}
+				}
+			}
+		},
+		"script_fields": {
+			"start": {
+				"script":{
+					"lang": "painless",
+					"source": "
+						long start = params.start;
+					    long end = params.end;
+						long duration = params.duration;
+
+						< ... painless-script ...>
+					",
+					"params" : {
+						"start":{{start}},
+						"end":{{end}},
+						"duration":{{duration}}
+					}
+				}
+			}
+		}
+	}"""
+  }
+}
+
+
+retrieve the script:
+ GET _scripts/script-a

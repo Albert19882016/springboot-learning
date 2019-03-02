@@ -55,7 +55,7 @@ public class ESConfiguration  {
             for(String ip:ips){
                 client.addTransportAddress(new TransportAddress(InetAddress.getByName(ip),Integer.valueOf(port)));
             }
-            logger.info("Elaticsearch实例化-clusterNodes:" + clusterNodes + "&& port" + port + "&&clusterName" + clusterName);
+            logger.info("Elaticsearch实例化-clusterNodes:" + clusterNodes + "&& port:" + port + "&& clusterName:" + clusterName);
             return client;
         } catch (Exception e) {
             logger.error("elasticsearch TransportClient create error!!!", e);
