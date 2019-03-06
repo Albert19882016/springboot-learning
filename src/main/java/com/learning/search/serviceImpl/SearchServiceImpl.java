@@ -10,6 +10,7 @@ import com.learning.search.utils.ESConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.elasticsearch.core.ElasticsearchTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.*;
@@ -30,6 +31,9 @@ public class SearchServiceImpl implements SearchService {
 
     @Autowired
     private SearchServiceRepository searchServiceRepository;
+
+    @Autowired
+    private ElasticsearchTemplate elasticsearchTemplate;
 
     @Override
     @Transactional(readOnly = true)

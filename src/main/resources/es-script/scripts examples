@@ -36,3 +36,26 @@ POST _scripts/script-a
 
 retrieve the script:
  GET _scripts/script-a
+
+
+
+
+
+Elasticsearch script java api:
+1. INLINE script
+        //SearchTemplateRequest request = new SearchTemplateRequest();
+        UpdateRequest updateRequest = new UpdateRequest();
+        //此处写内嵌脚本
+        String code = "";
+        Map<String, Object> params = new HashMap<>();
+        Script script = new Script(ScriptType.INLINE, "painless", code, params);
+        updateRequest.script(script);
+        elasticsearchTemplate.getClient().update(updateRequest);
+
+2. STORED script
+        UpdateRequest updateRequest = new UpdateRequest();
+        Map<String, Object> params = new HashMap<>();
+        Script script = new Script(ScriptType.STORED, "painless", "<script_id>", params);
+        updateRequest.script(script);
+        elasticsearchTemplate.getClient().update(updateRequest);
+

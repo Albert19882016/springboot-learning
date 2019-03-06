@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.learning.search.annotations.ESDocument;
 import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.get.MultiGetItemResponse;
@@ -21,7 +20,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.elasticsearch.annotations.Document;
 import org.springframework.data.elasticsearch.core.ElasticsearchTemplate;
 import org.springframework.stereotype.Repository;
-
 import javax.persistence.Id;
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -230,8 +228,8 @@ public abstract class ElasticsearchScriptFactory<T extends Object> {
     }
 
     String[] prepareIndex(T t){
-        String index = t.getClass().getAnnotation(ESDocument.class).index();
-        String type = t.getClass().getAnnotation(ESDocument.class).type();
+        String index = t.getClass().getAnnotation(Document.class).indexName();
+        String type = t.getClass().getAnnotation(Document.class).type();
         String id = null;
         Field[] fields = t.getClass().getDeclaredFields();
         for(Field f:fields){
