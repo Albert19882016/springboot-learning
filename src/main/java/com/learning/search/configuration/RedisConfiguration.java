@@ -21,35 +21,25 @@ import java.time.Duration;
 /**
  * 多Redis集群配置。
  */
-
 @Configuration
 @AutoConfigureAfter(RedisAutoConfiguration.class)
 public class RedisConfiguration {
-    /*@Bean
-    public RedisTemplate<String, Serializable> redisCacheTemplate(LettuceConnectionFactory redisConnectionFactory) {
-        RedisTemplate<String, Serializable> template = new RedisTemplate<>();
-        template.setKeySerializer(new StringRedisSerializer());
-        template.setValueSerializer(new GenericJackson2JsonRedisSerializer());
-        template.setConnectionFactory(redisConnectionFactory);
-        return template;
-    }
-*/
 
     @Bean
-    @ConditionalOnBean(name = "localRedisConfig")
-    public LettuceConnectionFactory localLettuceConnectionFactory(RedisStandaloneConfiguration localRedisConfig,
-                                                                  GenericObjectPoolConfig localPoolConfig) {
+    @ConditionalOnBean(name = "alphaRedisConfig")
+    public LettuceConnectionFactory alphaLettuceConnectionFactory(RedisStandaloneConfiguration alphaRedisConfig,
+                                                                  GenericObjectPoolConfig alphaPoolConfig) {
         LettuceClientConfiguration clientConfig =
                 LettucePoolingClientConfiguration.builder().commandTimeout(Duration.ofMillis(100))
-                        .poolConfig(localPoolConfig).build();
-        return new LettuceConnectionFactory(localRedisConfig, clientConfig);
+                        .poolConfig(alphaPoolConfig).build();
+        return new LettuceConnectionFactory(alphaRedisConfig, clientConfig);
     }
 
     @Bean
-    @ConditionalOnBean(name = "localLettuceConnectionFactory")
-    public RedisTemplate<String, String> localRedisTemplate(LettuceConnectionFactory localLettuceConnectionFactory) {
+    @ConditionalOnBean(name = "alphaLettuceConnectionFactory")
+    public RedisTemplate<String, String> localRedisTemplate(LettuceConnectionFactory alphaLettuceConnectionFactory) {
         RedisTemplate<String, String> redisTemplate = new RedisTemplate<>();
-        redisTemplate.setConnectionFactory(localLettuceConnectionFactory);
+        redisTemplate.setConnectionFactory(alphaLettuceConnectionFactory);
         redisTemplate.setKeySerializer(new StringRedisSerializer());
         redisTemplate.setValueSerializer(new GenericJackson2JsonRedisSerializer());
         redisTemplate.afterPropertiesSet();
@@ -57,36 +47,36 @@ public class RedisConfiguration {
     }
 
     @Configuration
-    @ConditionalOnProperty(name = "host", prefix = "spring.local-redis")
-    public static class LocalRedisConfig {
+    @ConditionalOnProperty(name = "host", prefix = "spring.alpharedis")
+    public static class AlphaRedisConfig {
 
-        @Value("${spring.local-redis.host:127.0.0.1}")
+        @Value("${spring.alpharedis.host}")
         private String host;
 
-        @Value("${spring.local-redis.port:6379}")
+        @Value("${spring.alpharedis.port}")
         private Integer port;
 
-        @Value("${spring.local-redis.password:}")
+        @Value("${spring.alpharedis.password}")
         private String password;
 
-        @Value("${spring.local-redis.database:0}")
+        @Value("${spring.alpharedis.database}")
         private Integer database;
 
-        @Value("${spring.local-redis.lettuce.pool.max-active:8}")
+        @Value("${spring.alpharedis.lettuce.pool.max-active}")
         private Integer maxActive;
 
-        @Value("${spring.local-redis.lettuce.pool.max-idle:8}")
+        @Value("${spring.alpharedis.lettuce.pool.max-idle}")
         private Integer maxIdle;
 
-        @Value("${spring.local-redis.lettuce.pool.max-wait:-1}")
+        @Value("${spring.alpharedis.lettuce.pool.max-wait}")
         private Long maxWait;
 
-        @Value("${spring.local-redis.lettuce.pool.min-idle:0}")
+        @Value("${spring.alpharedis.lettuce.pool.min-idle}")
         private Integer minIdle;
 
         @Bean
         @SuppressWarnings("all")
-        public GenericObjectPoolConfig localPoolConfig() {
+        public GenericObjectPoolConfig alphaPoolConfig() {
             GenericObjectPoolConfig config = new GenericObjectPoolConfig();
             config.setMaxTotal(maxActive);
             config.setMaxIdle(maxIdle);
@@ -97,7 +87,7 @@ public class RedisConfiguration {
 
         @Bean
         @SuppressWarnings("all")
-        public RedisStandaloneConfiguration localRedisConfig() {
+        public RedisStandaloneConfiguration alphaRedisConfig() {
             RedisStandaloneConfiguration config = new RedisStandaloneConfiguration();
             config.setHostName(host);
             config.setPassword(RedisPassword.of(password));
@@ -107,52 +97,55 @@ public class RedisConfiguration {
         }
     }
 
-    /*
-    @Bean
-    public LettuceConnectionFactory defaultLettuceConnectionFactory(RedisStandaloneConfiguration defaultRedisConfig,
-                                                                    GenericObjectPoolConfig defaultPoolConfig) {
+
+
+
+
+/*    @Bean
+    @ConditionalOnBean(name = "betaRedisConfig")
+    public LettuceConnectionFactory betaLettuceConnectionFactory(RedisStandaloneConfiguration betaRedisConfig,
+                                                                    GenericObjectPoolConfig betaPoolConfig) {
         LettuceClientConfiguration clientConfig =
                 LettucePoolingClientConfiguration.builder().commandTimeout(Duration.ofMillis(100))
-                        .poolConfig(defaultPoolConfig).build();
-        return new LettuceConnectionFactory(defaultRedisConfig, clientConfig);
+                        .poolConfig(betaPoolConfig).build();
+        return new LettuceConnectionFactory(betaRedisConfig, clientConfig);
     }
 
     @Bean
     public RedisTemplate<String, String> defaultRedisTemplate(
-            LettuceConnectionFactory defaultLettuceConnectionFactory) {
+            LettuceConnectionFactory betaLettuceConnectionFactory) {
         RedisTemplate<String, String> redisTemplate = new RedisTemplate<>();
         redisTemplate.setKeySerializer(new StringRedisSerializer());
         redisTemplate.setValueSerializer(new GenericJackson2JsonRedisSerializer());
-        redisTemplate.setConnectionFactory(defaultLettuceConnectionFactory);
+        redisTemplate.setConnectionFactory(betaLettuceConnectionFactory);
         redisTemplate.afterPropertiesSet();
         return redisTemplate;
     }
-    */
 
-   /*
    @Configuration
-    public static class DefaultRedisConfig {
-        @Value("${spring.redis.host:127.0.0.1}")
+   @ConditionalOnProperty(name = "host", prefix = "spring.betaredis")
+   public static class BetaRedisConfig {
+        @Value("${spring.betaredis.host}")
         private String host;
-        @Value("${spring.redis.port:6379}")
+        @Value("${spring.betaredis.port}")
         private Integer port;
-        @Value("${spring.redis.password:}")
+        @Value("${spring.betaredis.password}")
         private String password;
-        @Value("${spring.redis.database:0}")
+        @Value("${spring.betaredis.database}")
         private Integer database;
 
-        @Value("${spring.redis.lettuce.pool.max-active:8}")
+        @Value("${spring.betaredis.lettuce.pool.max-active}")
         private Integer maxActive;
-        @Value("${spring.redis.lettuce.pool.max-idle:8}")
+        @Value("${spring.betaredis.lettuce.pool.max-idle}")
         private Integer maxIdle;
-        @Value("${spring.redis.lettuce.pool.max-wait:-1}")
+        @Value("${spring.betaredis.lettuce.pool.max-wait}")
         private Long maxWait;
-        @Value("${spring.redis.lettuce.pool.min-idle:0}")
+        @Value("${spring.betaredis.lettuce.pool.min-idle}")
         private Integer minIdle;
 
         @Bean
         @SuppressWarnings("all")
-        public GenericObjectPoolConfig defaultPoolConfig() {
+        public GenericObjectPoolConfig betaPoolConfig() {
             GenericObjectPoolConfig config = new GenericObjectPoolConfig();
             config.setMaxTotal(maxActive);
             config.setMaxIdle(maxIdle);
@@ -163,7 +156,7 @@ public class RedisConfiguration {
 
         @Bean
         @SuppressWarnings("all")
-        public RedisStandaloneConfiguration defaultRedisConfig() {
+        public RedisStandaloneConfiguration betaRedisConfig() {
             RedisStandaloneConfiguration config = new RedisStandaloneConfiguration();
             config.setHostName(host);
             config.setPassword(RedisPassword.of(password));
@@ -171,6 +164,5 @@ public class RedisConfiguration {
             config.setDatabase(database);
             return config;
         }
-    }
-    */
+    }*/
 }

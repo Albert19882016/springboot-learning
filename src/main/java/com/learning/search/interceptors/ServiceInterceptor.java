@@ -1,6 +1,5 @@
 package com.learning.search.interceptors;
 
-import com.learning.search.serviceImpl.HbaseServiceImpl;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.*;
 import org.slf4j.Logger;

@@ -9,9 +9,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
+/**
+ *  AOP的实例演示
+ */
 @Aspect
 @Component
-@Order(-1)// 保证该AOP在@Transactional之前执行
+@Order(-1)// 保证顺序
 public class DataSourceAspect {
 
     private static final Logger logger = LoggerFactory.getLogger(DataSourceAspect.class);

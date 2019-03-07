@@ -46,7 +46,7 @@ spring:
 
 
   # Redis数据库索引（默认为0）
-  redis:
+  alpharedis:
     database: 0
     # Redis服务器地址
     host: 127.0.0.1
@@ -61,9 +61,10 @@ spring:
        # 连接池最大阻塞等待时间（使用负值表示没有限制） 默认 -1
         max-wait: -1
        # 连接池中的最大空闲连接 默认 8
-        pool.max-idle: 8
+        max-idle: 8
        # 连接池中的最小空闲连接 默认 0
         min-idle: 0
+
 
 
 ## 该配置节点为独立的节点，有很多同学容易将这个配置放在spring的节点下，导致配置无法被识别
